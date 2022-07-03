@@ -1,6 +1,5 @@
 use rusty_sorter;
 use std::env;
-use std::process;
 use std::time::Instant;
 
 fn main() {
@@ -21,7 +20,7 @@ fn main() {
     // main functionality, with check on settings and everything
     if recursive {
         // get dir recursively (include sub dirs) in the current dir
-        let dirs = rusty_sorter::get_dirs_recursively(&current_dir, follow_links);
+        let dirs = rusty_sorter::get_dirs_recursively(&current_dir, follow_links, include_dot_files);
 
         for dir in dirs {
             rusty_sorter::sort_files_by_ext(&dir, include_dot_files);

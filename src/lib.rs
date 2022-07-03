@@ -18,7 +18,7 @@ pub fn get_os_sep() -> String {
     }
 }
 
-pub fn get_dirs_recursively(path: &str, follow_links: bool) -> Vec<String> {
+pub fn get_dirs_recursively(path: &str, follow_links: bool, include_dot_files: bool) -> Vec<String> {
     let mut files: Vec<String> = vec![];
 
     for dir in WalkDir::new(&path)
@@ -28,6 +28,11 @@ pub fn get_dirs_recursively(path: &str, follow_links: bool) -> Vec<String> {
     {
         // the unwrap is find here since we already checked the file (tested in depth)
         if dir.metadata().unwrap().is_dir() {
+            if !include_dot_files {
+                if dir.file_name().to_str().unwrap().chars().next().unwrap().to_string() == "." {
+                    continue;
+                }
+            }
             files.push(dir.path().display().to_string());
         }
     }
