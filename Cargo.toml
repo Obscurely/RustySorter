@@ -2,9 +2,20 @@
 name = "rusty-sorter"
 version = "0.1.0"
 edition = "2021"
+authors = ["Obscurely <adrian.obscurely@protonmail.com>"]
+rust-version = "1.62"                                                                            # Minimal rust version, should work with older versions, but for compatibility this is the one I used.
+description = "An open source, fast, simple yet efficient file sorter with recursive capabilities!"
+documentation = "https://github.com/Obscurely/rustysorter"
+repository = "https://github.com/Obscurely/rustysorter"
+homepage = "https://github.com/Obscurely/rustysorter"
+categories = ["command-line-utilities"]
+keywords = ["cli", "fast", "open-source", "simple", "efficient"]
+readme = "README.md"
+license = "GPL-3.0-only"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 walkdir = "2.3.2"
 itertools = "0.10.3"
+argparse = "0.2.2"

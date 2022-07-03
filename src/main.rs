@@ -7,9 +7,32 @@ fn main() {
     env::set_current_dir("/home/netrunner/Code/Rust/rusty-sorter/work/").unwrap();
 
     // Settings
-    let recursive = true;
-    let follow_links = true;
-    let include_dot_files = true;
+    let mut recursive = false;
+    let mut follow_links = false;
+    let mut include_dot_files = false;
+    
+    // Cli options
+    {
+        // this block limits scope of borrows by ap.refer() method
+        let mut ap = argparse::ArgumentParser::new();
+        ap.set_description("An open source, fast, simple yet efficient file sorter with recursive capabilities!");
+        ap.refer(&mut recursive).add_option(
+            &["-r", "--recursive"],
+            argparse::StoreTrue,
+            "Recursive sorting, goes into all sub dirs.",
+        );
+        ap.refer(&mut follow_links).add_option(
+            &["-f", "--follow-links"],
+            argparse::StoreTrue,
+            "Follow links, sym-links, shortcuts, etc.",
+        );
+        ap.refer(&mut include_dot_files).add_option(
+            &["-d", "--include-dot-files"],
+            argparse::StoreTrue,
+            "Sorts by including dot files and dot dirs.",
+        );
+        ap.parse_args_or_exit();
+    }
 
     // get current dir
     let current_dir = rusty_sorter::get_current_dir();
