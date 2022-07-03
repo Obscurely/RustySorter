@@ -1,8 +1,10 @@
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::path;
 use std::process;
 use walkdir::WalkDir;
+use itertools::Itertools;
 
 pub fn get_os_sep() -> String {
     if cfg!(windows) {
@@ -82,6 +84,8 @@ pub fn get_file_extensions(files: &Vec<path::PathBuf>) -> Vec<String> {
         };
         extensions.push(extension.to_string().to_uppercase());
     }
+
+    // dedup orig vector
     // sort vector
     extensions.sort();
     // dedup vecotr
@@ -90,7 +94,64 @@ pub fn get_file_extensions(files: &Vec<path::PathBuf>) -> Vec<String> {
     extensions
 }
 
-pub fn mass_make_dirs(path: &str, names: &Vec<String>) {
+pub fn get_file_ext_names(files: &Vec<path::PathBuf>) -> HashMap<String, String> {
+    let extensions = get_file_extensions(files);
+
+    // Check if the files aren't already sorted aka some extension across the whole folder
+    let ext_len = &extensions.len().to_string();
+    if ext_len == &"1" || ext_len == &"0" {
+        if &files.len().to_string() != "0" {
+            let parent = match files[0].parent() {
+                Some(root) => root.to_str().unwrap(),
+                None => "ROOT"
+            };
+            println!("ALREADY SORTED DIR: {}", parent);
+        }
+        return HashMap::new();
+    }
+
+    // copy of extensions dupped vec into iter
+    let mut extensions_dupped = Vec::new();
+    for file in files {
+        // the unwrap is fine here since we already validated the metadata
+        let extension = match file.extension().unwrap().to_str() {
+            Some(ext) => ext,
+            None => {
+                eprintln!("[003] There was an error getting the extension of a file, this may be bug, but please check your file extensions");
+                process::exit(3);
+            }
+        };
+        extensions_dupped.push(extension.to_string().to_uppercase());
+    } 
+    // sort the dupped vec
+    extensions_dupped.sort();
+    // reverse the dupped extensions
+    extensions_dupped.reverse();
+
+    // compare and get how many items are for each file type.
+    let mut ext_count = Vec::new();
+    let mut last_count = 0;
+    for item in &extensions {
+        let index = &extensions_dupped.iter().position(|x| x == item).unwrap();
+        let count = &extensions_dupped.len() - index - last_count;
+        last_count = last_count + count;
+        ext_count.push((count, item));
+    }
+    // sort the ext_count
+    ext_count.sort();
+
+    // nubmer the extensions
+    let mut start_number = ext_count.len();
+    let mut ext_dir_names = HashMap::new();
+    for key in &ext_count {
+        ext_dir_names.insert(key.1.to_owned(), start_number.to_string() + "-" + key.1);
+        start_number = start_number - 1;
+    }
+
+    ext_dir_names
+}
+
+pub fn mass_make_dirs(path: &str, names: &Vec<&String>) {
     match env::set_current_dir(&path) {
         Ok(_) => (),
         Err(error) => {
@@ -133,17 +194,24 @@ pub fn sort_files_by_ext(path: &str) {
     let files = get_files_in_dir(&path);
 
     // get their extensions
-    let extensions = get_file_extensions(&files);
+    let extensions = get_file_ext_names(&files);
+    // Check if the files aren't already separated!
+    let ext_len = &extensions.len().to_string();
+    if ext_len == &"1" || ext_len == &"0" {
+        return;
+    }
+
+    let folders = extensions.values().collect();
 
     // create the new dirs
-    mass_make_dirs(&path, &extensions);
+    mass_make_dirs(&path, &folders);
 
     // move files into the new dir
     for file in files {
         let file_name = match file.file_name() {
             Some(name) => name,
             None => {
-                eprintln!("[006] There was an issue getting a files name, files that terminate in \"..\" are not supported!");
+                eprintln!("[006] There was an issue getting a file's name, files that terminate in \"..\" are not supported!");
                 process::exit(6);
             }
         };
@@ -164,13 +232,15 @@ pub fn sort_files_by_ext(path: &str) {
         // the first unwrap is find because we already validated the metadata, the second one is also fine because it would have already stopped from the operations before if it wasn't valid, the third unwrap is also valid since the whole path string got validated.
         let destination = root_path.to_owned()
             + &os_sep
-            + &file.extension().unwrap().to_str().unwrap().to_uppercase()
+            + &extensions[&file.extension().unwrap().to_str().unwrap().to_uppercase()]
             + &os_sep
             + file_name.to_str().unwrap();
 
         // copy the file to the destination
-        match fs::copy(&file, destination) {
-            Ok(_) => (),
+        match fs::copy(&file, &destination) {
+            Ok(_) => {
+                println!("COPY: {} -> {}", &file.display().to_string(), &destination);
+            },
             Err(error) => {
                 eprintln!("[008] There was an error copying a file to the newly created dir for it, the given error is: {}", error);
                 process::exit(8);
@@ -178,8 +248,10 @@ pub fn sort_files_by_ext(path: &str) {
         };
 
         // now that the copy was successful we can delete the file from its previous location
-        match fs::remove_file(file) {
-            Ok(_) => (),
+        match fs::remove_file(&file) {
+            Ok(_) => {
+                println!("DELETE: {}", &file.display().to_string());
+            },
             Err(error) => {
                 eprintln!("There was a problem deleting a file that was successfully copied to it's new location, the given error is: {}", error);
             }
