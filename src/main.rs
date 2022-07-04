@@ -3,9 +3,6 @@ use std::env;
 use std::time::Instant;
 
 fn main() {
-    // TEMP: change to work dir
-    env::set_current_dir("/home/netrunner/Code/Rust/rusty-sorter/work/").unwrap();
-
     // Settings
     let mut recursive = false;
     let mut follow_links = false;
